@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECONQUEST - Financial Literacy RPG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Press+Start+2P&display=swap');
+        :root {
+            font-family: 'Inter', sans-serif;
+        }
+        .rpg-font {
+            font-family: 'Press Start 2P', cursive;
+        }
+        .rpg-bg {
+            background-color: #1a1a2e;
+        }
+        .rpg-card {
+            background-color: #1f283a;
+            border: 2px solid #5d5d81;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+        }
+        .xp-bar {
+            transition: width 0.5s ease-in-out;
+        }
+        .stat-label {
+            color: #b7c0d7;
+            font-size: 0.8rem;
+        }
+        .stat-value {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1.1rem;
+            color: #ffd700;
+        }
+        #game-log {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        #game-log::-webkit-scrollbar {
+            width: 8px;
+        }
+        #game-log::-webkit-scrollbar-thumb {
+            background-color: #5d5d81;
+            border-radius: 4px;
+        }
+        .educational-tip {
+            border-left: 4px solid #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+            padding: 8px 12px;
+            margin: 8px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        
+        /* Animation classes */
+        .pulse-gold {
+            animation: pulse-gold 2s infinite;
+        }
+        @keyframes pulse-gold {
+            0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 215, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
+        }
+        .shake {
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="rpg-bg min-h-screen text-white p-4 sm:p-8">
+
+<!-- Main Game UI -->
+<div id="main-game" class="hidden max-w-6xl mx-auto"> 
+    <header class="text-center py-4 mb-6 border-b-4 border-yellow-500/50">
+        <h1 class="rpg-font text-3xl sm:text-4xl text-yellow-400">ECONQUEST</h1>
+        <p class="text-xl text-gray-300 mt-2"><span id="char-name">Hero</span>, the <span id="char-class">Class</span></p>
+        <p class="text-xs text-gray-500">Financial Literacy RPG</p>
+        
+        <!-- Achievement notifications area -->
+        <div id="achievement-notifications" class="mt-2"></div>
+    </header>
+
+    <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Column: Stats and Quests -->
+        <div class="lg:col-span-1">
+            <div class="rpg-card p-4 rounded-lg mb-6">
+                <h2 class="rpg-font text-2xl text-white mb-4 border-b pb-2 border-gray-600">Stats</h2>
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="stat-label">Level: <span class="stat-value text-green-400" id="stat-level">1</span></span>
+                        <span class="text-xs text-gray-400" id="xp-text">XP: 0 / 1000</span>
+                    </div>
+                    <div class="w-full bg-gray-600 rounded-full h-3">
+                        <div id="xp-bar-inner" class="xp-bar bg-green-500 h-3 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="stat-label">💰 Gold (Rewards):</span>
+                        <span class="stat-value" id="stat-gold">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="stat-label">💵 Net Worth:</span>
+                        <span class="stat-value text-blue-400" id="stat-net-worth">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="stat-label">🛡️ Total Savings:</span>
+                        <span class="stat-value text-green-400" id="stat-savings">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="stat-label">🔥 Total Debt:</span>
+                        <span class="stat-value text-red-400" id="stat-debt">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rpg-card p-4 rounded-lg">
+                <h2 class="rpg-font text-xl text-white mb-4 border-b pb-2 border-gray-600">Active Quests</h2>
+                <ul id="quest-list" class="space-y-2">
+                    <li class="text-gray-400 text-sm">Complete setup to see quests</li>
+                </ul>
+            </div>
+            
+            <!-- New: Achievements Section -->
+            <div class="rpg-card p-4 rounded-lg mt-6">
+                <h2 class="rpg-font text-xl text-white mb-4 border-b pb-2 border-gray-600">Achievements</h2>
+                <div id="achievements-list" class="space-y-2">
+                    <p class="text-gray-400 text-sm">Complete challenges to unlock achievements!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Game Actions and Log -->
+        <div class="lg:col-span-2">
+            <div class="rpg-card p-4 rounded-lg mb-6">
+                <h2 class="rpg-font text-2xl text-yellow-400 mb-4 border-b pb-2 border-gray-600">The Monthly Cycle</h2>
+                <p class="text-gray-400 mb-4">You are currently in Month <span id="month-counter">0</span>. Click the button to advance time, collect your salary, pay expenses, and apply surplus to savings (or debt).</p>
+                
+                <button id="main-action-button" onclick="runMonthlyCycle()" class="w-full bg-blue-600 hover:bg-blue-700 text-white rpg-font py-3 rounded-lg text-lg transition duration-150 pulse-gold">
+                    ADVANCE MONTH & BUDGET!
+                </button>
+                
+                <div id="combat-section">
+                    <p class="text-gray-400 text-sm">Setup your character to begin...</p>
+                </div>
+                
+                <!-- New: Quick Action Buttons -->
+                <div class="grid grid-cols-2 gap-2 mt-4">
+                    <button onclick="showDebtPaymentOptions()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded text-sm transition duration-150">
+                        💳 Pay Debt
+                    </button>
+                    <button onclick="showGoldShop()" class="bg-yellow-600 hover:bg-yellow-700 text-black font-bold py-2 rounded text-sm transition duration-150">
+                        🛍️ Shop
+                    </button>
+                </div>
+            </div>
+
+            <div class="rpg-card p-4 rounded-lg">
+                <h2 class="rpg-font text-xl text-white mb-4 border-b pb-2 border-gray-600">Game Log</h2>
+                <div id="game-log" class="text-xs space-y-1">
+                    <p class="text-gray-400">System initialization complete...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Random Event Modal -->
+<div id="random-event-modal" class="hidden fixed inset-0 rpg-bg bg-opacity-95 flex items-center justify-center p-4 z-50">
+    <div class="rpg-card p-6 sm:p-8 rounded-lg max-w-lg w-full border-orange-500">
+        <h2 class="rpg-font text-xl text-orange-400 mb-2 text-center">Random Encounter!</h2>
+        <h3 id="event-title" class="text-2xl text-white font-bold mb-4 text-center"></h3>
+        
+        <p id="event-flavor" class="text-gray-300 text-center mb-6 border-b border-gray-700 pb-4"></p>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <button id="event-option-a" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg text-sm transition duration-150 shadow-lg shadow-red-900/50">
+                Option A Label
+            </button>
+            <button id="event-option-b" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg text-sm transition duration-150 shadow-lg shadow-green-900/50">
+                Option B Label
+            </button>
+        </div>
+        <p class="text-xs text-gray-500 mt-4 text-center">Your choice affects your next monthly cycle!</p>
+    </div>
+</div>
+
+<!-- Character Setup Modal -->
+<div id="setup-modal" class="fixed inset-0 rpg-bg bg-opacity-95 flex items-center justify-center p-4 z-50">
+    <div class="rpg-card p-6 sm:p-8 rounded-lg max-w-md w-full border-yellow-500">
+        <h2 class="rpg-font text-2xl text-yellow-400 mb-4 text-center">BEGIN ECONQUEST</h2>
+        <p class="text-gray-300 text-center mb-6">Create your hero to start your financial journey!</p>
+        
+        <form id="char-setup-form" onsubmit="event.preventDefault(); handleSetupSubmit();">
+            <div class="mb-4">
+                <label for="char-name-input" class="block text-sm font-medium text-gray-400">Hero Name</label>
+                <input type="text" id="char-name-input" required class="mt-1 w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-yellow-500 focus:border-yellow-500" value="Financial Hero">
+            </div>
+            
+            <div class="mb-4">
+                <label for="char-class-select" class="block text-sm font-medium text-gray-400">Choose Your Economic Reality</label>
+                <select id="char-class-select" required onchange="updateClassReality(this.value)" class="mt-1 w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-yellow-500 focus:border-yellow-500">
+                    <option value="" disabled selected>Select your economic path...</option>
+                    <option value="The Barista (Service Worker)">☕ The Barista (Service Worker)</option>
+                    <option value="The Junior Developer (Tech Entry)">💻 The Junior Developer (Tech Entry)</option>
+                    <option value="The Teacher (Public Service)">🍎 The Teacher (Public Service)</option>
+                </select>
+                <div id="class-reality" class="mt-2 p-3 bg-gray-800 rounded-md hidden">
+                    <p class="text-sm text-gray-300" id="reality-description"></p>
+                    <p class="text-xs text-yellow-400 mt-1" id="reality-stats"></p>
+                    <p class="text-xs text-blue-400 mt-1" id="reality-warning"></p>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full bg-yellow-600 hover:bg-yellow-700 text-black rpg-font py-3 rounded-lg text-base transition duration-150">
+                START QUEST
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+// Enhanced game state with new features
+const gameState = {
+    character: null,
+    currentEnemy: null,
+    logMessages: [],
+    month: 0,
+    achievements: [],
+    
+    classes: {
+        "The Barista (Service Worker)": { 
+            salary: 2200, expenses: 2100, debt: 5000,
+            reality: "65% of income goes to rent alone. Every dollar counts.",
+            learningFocus: "Basic budgeting and emergency funds"
+        },
+        "The Junior Developer (Tech Entry)": { 
+            salary: 5500, expenses: 4200, debt: 35000,
+            reality: "Silicon Valley rent consumes your salary. Resist lifestyle inflation.",
+            learningFocus: "Lifestyle inflation and debt prioritization"
+        },
+        "The Teacher (Public Service)": { 
+            salary: 3800, expenses: 3200, debt: 45000,
+            reality: "Underpaid but essential. Maximize every dollar for impact.",
+            learningFocus: "Public service loan forgiveness and side income"
+        }
+    },
+
+    quests: [
+        { id: 1, type: 'save', goal: 500, xp: 500, title: "Starter Emergency Fund", rewardGold: 100 },
+        { id: 2, type: 'debt', amount: 1000, xp: 750, title: "First $1K Debt Freedom", rewardGold: 150, requiredLevel: 1 },
+        { id: 3, type: 'save', goal: 2000, xp: 1200, title: "Growing Safety Net", rewardGold: 250, requiredLevel: 2 },
+        { id: 4, type: 'networth', goal: 0, xp: 2000, title: "Break Even Hero", rewardGold: 500, requiredLevel: 3 },
+        { id: 5, type: 'save', goal: 5000, xp: 2500, title: "Solid Emergency Fund", rewardGold: 750, requiredLevel: 5 },
+        { id: 6, type: 'networth', goal: 10000, xp: 5000, title: "Positive Net Worth", rewardGold: 1000, requiredLevel: 7 }
+    ],
+
+    enemies: {
+        'Impulse Purchase Goblin': { debt: 500, hp: 500, goldDrop: 100, xpReward: 300, flavor: "That 'quick buy' that derails your budget!" },
+        'Lifestyle Inflation Dragon': { debt: 2000, hp: 2000, goldDrop: 300, xpReward: 800, flavor: "Upgrading your life faster than your income grows!" },
+        'Credit Card Minotaur': { debt: 1500, hp: 1500, goldDrop: 200, xpReward: 600, flavor: "Labyrinth of minimum payments and hidden fees!" },
+        'Subscription Serpent': { debt: 800, hp: 800, goldDrop: 150, xpReward: 400, flavor: "Small recurring charges that slowly drain your funds!" },
+        'Payday Loan Phantom': { debt: 1200, hp: 1200, goldDrop: 180, xpReward: 500, flavor: "High-interest emergency loans that trap you in debt!" }
+    },
+    
+    randomEvents: [
+        {
+            title: "The Weekend Sales Scroll",
+            flavor: "A targeted ad shows a gadget you 'need'—a beautiful, high-tech piece of gear.",
+            optionA: {
+                label: "Buy the Gadget (+$200 Debt, +200 XP)",
+                action: (char) => {
+                    char.totalDebt += 200;
+                    char.xp += 200;
+                    logMessage("You bought the gadget. It's cool, but that debt will grow!", 'error');
+                }
+            },
+            optionB: {
+                label: "Close the Tab (+$50 Savings, +50 XP)",
+                action: (char) => {
+                    char.totalSavings += 50;
+                    char.xp += 50;
+                    logMessage("You resisted the urge. Small savings, big discipline!", 'success');
+                }
+            },
+            type: 'impulse'
+        },
+        {
+            title: "A Friend's Birthday Invitation",
+            flavor: "Your best friend is having a surprise party in an expensive city. The train ticket and hotel cost a fortune.",
+            optionA: {
+                label: "Go! (Spend $300 Savings, +250 XP for Networking)",
+                action: (char) => {
+                    if (char.totalSavings >= 300) {
+                        char.totalSavings -= 300;
+                        char.xp += 250;
+                        logMessage("You had a great time, but your emergency fund took a hit.", 'warning');
+                    } else {
+                        char.totalDebt += 300;
+                        logMessage("You put the trip on a credit card. Ouch!", 'error');
+                    }
+                }
+            },
+            optionB: {
+                label: "Send a Gift (Spend $50 Gold, Stay Home)",
+                action: (char) => {
+                    char.gold = Math.max(0, char.gold - 50);
+                    logMessage("You chose to prioritize your financial goals over social pressure. Great choice!", 'lesson');
+                }
+            },
+            type: 'discipline'
+        },
+        {
+            title: "A Sudden Expense: Car Trouble",
+            flavor: "Your old car broke down and needs a critical repair.",
+            optionA: {
+                label: "Use a Credit Card (+$500 Debt, -100 XP)",
+                action: (char) => {
+                    char.totalDebt += 500;
+                    char.xp = Math.max(0, char.xp - 100);
+                    logMessage("You incurred $500 debt. This is what emergency funds are for!", 'error');
+                }
+            },
+            optionB: {
+                label: "Pay with Savings (Spend $500 Savings)",
+                action: (char) => {
+                    if (char.totalSavings >= 500) {
+                        char.totalSavings -= 500;
+                        logMessage("Your emergency fund saved you from high-interest debt!", 'lesson');
+                    } else {
+                        char.totalDebt += 500;
+                        logMessage("Not enough savings! Forced to take out debt for the repair.", 'error');
+                    }
+                }
+            },
+            type: 'emergency'
+        },
+        {
+            title: "Investment Opportunity",
+            flavor: "A colleague tells you about a promising investment with potential for growth.",
+            optionA: {
+                label: "Invest $300 Savings (Risk/Reward)",
+                action: (char) => {
+                    if (char.totalSavings >= 300) {
+                        char.totalSavings -= 300;
+                        // 60% chance of gain, 40% chance of loss
+                        if (Math.random() < 0.6) {
+                            const gain = Math.floor(300 * (0.5 + Math.random() * 0.5));
+                            char.totalSavings += 300 + gain;
+                            char.xp += 150;
+                            logMessage(`Great investment! Your $300 grew to $${300 + gain}!`, 'success');
+                        } else {
+                            const loss = Math.floor(300 * (0.2 + Math.random() * 0.3));
+                            char.totalSavings += 300 - loss;
+                            char.xp += 50;
+                            logMessage(`Investment didn't pan out. You lost $${loss} of your $300.`, 'warning');
+                        }
+                    } else {
+                        logMessage("Not enough savings to invest!", 'error');
+                    }
+                }
+            },
+            optionB: {
+                label: "Research First (No Investment)",
+                action: (char) => {
+                    char.xp += 75;
+                    logMessage("You decided to research before investing. Smart approach to risk management!", 'lesson');
+                }
+            },
+            type: 'investment'
+        }
+    ],
+    
+    // New: Achievement system
+    achievementsList: [
+        { id: 'first_save', name: 'First Saver', description: 'Save your first $100', reward: 50, unlocked: false },
+        { id: 'debt_free', name: 'Debt Free', description: 'Pay off all your starting debt', reward: 500, unlocked: false },
+        { id: 'emergency_fund', name: 'Emergency Prepared', description: 'Build a $1000 emergency fund', reward: 200, unlocked: false },
+        { id: 'net_positive', name: 'Positive Net Worth', description: 'Achieve a positive net worth', reward: 300, unlocked: false },
+        { id: 'level_5', name: 'Financial Novice', description: 'Reach Level 5', reward: 150, unlocked: false },
+        { id: 'level_10', name: 'Financial Adept', description: 'Reach Level 10', reward: 300, unlocked: false },
+        { id: 'first_investment', name: 'First Investment', description: 'Make your first investment', reward: 100, unlocked: false },
+        { id: 'debt_slayer', name: 'Debt Slayer', description: 'Defeat 5 debt monsters', reward: 250, unlocked: false }
+    ]
+};
+
+// --- CORE UTILITY FUNCTIONS ---
+
+function logMessage(message, type = 'info') {
+    const log = document.getElementById('game-log');
+    const color = {
+        info: 'text-gray-400',
+        success: 'text-green-400',
+        warning: 'text-yellow-400',
+        error: 'text-red-500',
+        combat: 'text-red-300',
+        lesson: 'text-yellow-300 educational-tip'
+    }[type] || 'text-gray-400';
+
+    const formattedMessage = `<p class="${color} text-sm mb-1 fade-in">${type === 'lesson' ? message : message.replace('💡', '•')}</p>`;
+    
+    // Add new messages to the beginning of the array instead of the end
+    gameState.logMessages.unshift(formattedMessage);
+
+    if (gameState.logMessages.length > 50) {
+        gameState.logMessages.pop(); // Remove from the end (oldest message)
+    }
+    log.innerHTML = gameState.logMessages.join('');
+    // Scroll to top instead of bottom since newest is at top now
+    log.scrollTop = 0;
+    
+    // Add visual feedback for important messages
+    if (type === 'success') {
+        const mainButton = document.getElementById('main-action-button');
+        if (mainButton) {
+            mainButton.classList.add('pulse-gold');
+            setTimeout(() => mainButton.classList.remove('pulse-gold'), 2000);
+        }
+    }
+    
+    if (type === 'error') {
+        const statsCard = document.querySelector('.rpg-card');
+        if (statsCard) {
+            statsCard.classList.add('shake');
+            setTimeout(() => statsCard.classList.remove('shake'), 500);
+        }
+    }
+}
+
+function updateUI() {
+    const char = gameState.character;
+    if (!char) return;
+
+    // Update Header
+    document.getElementById('char-name').textContent = char.name;
+    document.getElementById('char-class').textContent = char.class;
+
+    // Update Primary Stats
+    document.getElementById('stat-level').textContent = char.level;
+    document.getElementById('stat-gold').textContent = char.gold.toLocaleString();
+    document.getElementById('stat-net-worth').textContent = char.netWorth.toLocaleString();
+    document.getElementById('stat-debt').textContent = Math.max(0, char.totalDebt).toLocaleString(); 
+    document.getElementById('stat-savings').textContent = char.totalSavings.toLocaleString();
+    document.getElementById('month-counter').textContent = gameState.month;
+
+    // Update XP Bar
+    const getLevelXP = (level) => {
+        if (level <= 5) return level * 500;
+        else if (level <= 10) return level * 800;
+        else return level * 1200;
+    };
+    const nextLevelXP = getLevelXP(char.level);
+    const xpBar = document.getElementById('xp-bar-inner');
+    const xpPercent = Math.min(100, (char.xp / nextLevelXP) * 100);
+    xpBar.style.width = `${xpPercent}%`;
+    document.getElementById('xp-text').textContent = `XP: ${char.xp.toLocaleString()} / ${nextLevelXP.toLocaleString()}`;
+
+    // Update Quests, Combat and Achievements
+    updateQuests();
+    updateCombatSection();
+    updateAchievements();
+}
+
+// --- SETUP FUNCTIONS ---
+
+function initializeCharacter(name, className) {
+    const template = gameState.classes[className];
+    if (!template) return;
+    
+    gameState.character = {
+        name: name,
+        class: className,
+        level: 1,
+        xp: 0,
+        gold: 100,
+        totalSavings: 0,
+        totalDebt: template.debt,
+        monthlySalary: template.salary,
+        monthlyExpenses: template.expenses,
+        baseSalary: template.salary, // Store base salary for side hustle calculations
+        budgetSurplus: template.salary - template.expenses,
+        netWorth: 0 - template.debt,
+        questsCompleted: []
+    };
+    
+    logMessage(`Character ${name} created as a ${className}! Initial Debt: $${template.debt.toLocaleString()}.`, 'success');
+    logMessage(`Your goal: Overcome the Financial Reality of your class. Focus: ${template.learningFocus}.`, 'lesson');
+    
+    document.getElementById('setup-modal').classList.add('hidden');
+    document.getElementById('main-game').classList.remove('hidden');
+    
+    updateUI();
+}
+
+window.updateClassReality = (className) => {
+    const realityDiv = document.getElementById('class-reality');
+    const template = gameState.classes[className];
+    
+    if (template) {
+        document.getElementById('reality-description').textContent = template.reality;
+        document.getElementById('reality-stats').innerHTML = `Salary: $${template.salary.toLocaleString()} | Expenses: $${template.expenses.toLocaleString()} | Starting Debt: $${template.debt.toLocaleString()}`;
+        
+        const surplus = template.salary - template.expenses;
+        const warningText = surplus >= 0 
+            ? `Initial Surplus: $${surplus.toLocaleString()} (Good start!)`
+            : `Initial Deficit: $${surplus.toLocaleString()} (Budgeting required immediately!)`;
+        
+        document.getElementById('reality-warning').textContent = warningText;
+        
+        realityDiv.classList.remove('hidden');
+    } else {
+        realityDiv.classList.add('hidden');
+    }
+};
+
+window.handleSetupSubmit = () => {
+    const name = document.getElementById('char-name-input').value;
+    const className = document.getElementById('char-class-select').value;
+
+    if (name && className) {
+        initializeCharacter(name, className);
+    } else {
+        logMessage('Please enter a name and select an economic reality.', 'error');
+    }
+};
+
+// --- ENHANCED DEBT PAYMENT SYSTEM ---
+
+function showDebtPaymentOptions() {
+    const char = gameState.character;
+    if (!char) return;
+    
+    // Ensure main button is enabled
+    const mainButton = document.getElementById('main-action-button');
+    if (mainButton) {
+        mainButton.disabled = false;
+    }
+
+    const maxPayment = Math.min(char.totalDebt, Math.floor(char.totalSavings * 0.8));
+    
+    if (maxPayment <= 0) {
+        logMessage(`❌ You need at least some savings to make a debt payment!`, 'error');
+        return;
+    }
+
+    const modalHTML = `
+        <div class="fixed inset-0 rpg-bg bg-opacity-95 flex items-center justify-center p-4 z-50" id="debt-payment-modal">
+            <div class="rpg-card p-6 rounded-lg max-w-md w-full border-blue-500">
+                <h2 class="rpg-font text-xl text-blue-400 mb-4 text-center">Choose Debt Payment</h2>
+                <p class="text-gray-300 text-center mb-4">How much do you want to pay toward your debt?</p>
+                
+                <div class="space-y-3 mb-4">
+                    <div class="p-3 border border-gray-600 rounded-lg hover:bg-gray-700 cursor-pointer" onclick="makeDebtPayment(100)">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="text-white font-bold">Minimum Payment ($100)</p>
+                                <p class="text-xs text-gray-400">Slow but steady</p>
+                            </div>
+                            <span class="text-green-400 text-sm">Available</span>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 border border-gray-600 rounded-lg hover:bg-gray-700 cursor-pointer" onclick="makeDebtPayment(250)">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="text-white font-bold">Standard Payment ($250)</p>
+                                <p class="text-xs text-gray-400">Good balance</p>
+                            </div>
+                            <span class="text-green-400 text-sm">Available</span>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 border border-gray-600 rounded-lg hover:bg-gray-700 cursor-pointer" onclick="makeDebtPayment(500)">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="text-white font-bold">Aggressive Payment ($500)</p>
+                                <p class="text-xs text-gray-400">Fast progress</p>
+                            </div>
+                            <span class="text-green-400 text-sm">Available</span>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 border border-gray-600 rounded-lg hover:bg-gray-700 cursor-pointer" onclick="makeDebtPayment(${maxPayment})">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="text-white font-bold">Maximum Payment ($${maxPayment.toLocaleString()})</p>
+                                <p class="text-xs text-gray-400">All-in approach</p>
+                            </div>
+                            <span class="text-green-400 text-sm">Available</span>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 border border-gray-600 rounded-lg hover:bg-gray-700 cursor-pointer" onclick="showCustomDebtPayment()">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="text-white font-bold">Custom Amount</p>
+                                <p class="text-xs text-gray-400">Choose your own</p>
+                            </div>
+                            <span class="text-blue-400">→</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    <button onclick="closeModal()" class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Remove any existing modal first
+    const existingModal = document.getElementById('debt-payment-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+function showCustomDebtPayment() {
+    const char = gameState.character;
+    const maxPayment = Math.min(char.totalDebt, Math.floor(char.totalSavings * 0.8));
+    
+    closeModal();
+    
+    const modalHTML = `
+        <div class="fixed inset-0 rpg-bg bg-opacity-95 flex items-center justify-center p-4 z-50" id="custom-payment-modal">
+            <div class="rpg-card p-6 rounded-lg max-w-md w-full border-purple-500">
+                <h2 class="rpg-font text-xl text-purple-400 mb-4 text-center">Custom Debt Payment</h2>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-400 mb-2">
+                        Enter amount (Max: $${maxPayment.toLocaleString()})
+                    </label>
+                    <input type="number" id="custom-payment-amount" 
+                           min="1" max="${maxPayment}" 
+                           value="100"
+                           class="w-full p-3 rounded-md bg-gray-700 border border-gray-600 text-white text-center text-lg">
+                </div>
+                
+                <div class="grid grid-cols-4 gap-2 mb-4">
+                    <button onclick="setPaymentPercentage(0.1)" class="bg-gray-600 hover:bg-gray-700 text-white py-2 rounded text-xs">10%</button>
+                    <button onclick="setPaymentPercentage(0.25)" class="bg-gray-600 hover:bg-gray-700 text-white py-2 rounded text-xs">25%</button>
+                    <button onclick="setPaymentPercentage(0.5)" class="bg-gray-600 hover:bg-gray-700 text-white py-2 rounded text-xs">50%</button>
+                    <button onclick="setPaymentPercentage(0.75)" class="bg-gray-600 hover:bg-gray-700 text-white py-2 rounded text-xs">75%</button>
+                </div>
+                
+                <div class="flex space-x-2">
+                    <button onclick="closeModal()" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded">
+                        Cancel
+                    </button>
+                    <button onclick="processCustomPayment()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded">
+                        Pay Debt
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+function setPaymentPercentage(percentage) {
+    const char = gameState.character;
+    const maxPayment = Math.min(char.totalDebt, Math.floor(char.totalSavings * 0.8));
+    const amount = Math.floor(maxPayment * percentage);
+    
+    const input = document.getElementById('custom-payment-amount');
+    if (input) {
+        input.value = amount;
+    }
+}
+
+function processCustomPayment() {
+    const input = document.getElementById('custom-payment-amount');
+    const amount = parseInt(input.value);
+    
+    if (amount && amount > 0) {
+        makeDebtPayment(amount);
+    } else {
+        logMessage('❌ Please enter a valid payment amount!', 'error');
+    }
+}
+
+function closeModal() {
+    const modals = [
+        'debt-payment-modal',
+        'custom-payment-modal', 
+        'gold-shop-modal',
+        'random-event-modal'
+    ];
+    
+    // Remove modals by ID
+    modals.forEach(modalId => {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.remove();
+        }
+    });
+    
+    // Remove any stray fixed overlays that might be blocking clicks
+    const allFixedOverlays = document.querySelectorAll('.fixed.inset-0.z-50');
+    allFixedOverlays.forEach(overlay => {
+        // Don't remove the setup modal
+        if (overlay.id !== 'setup-modal' && overlay.id !== 'random-event-modal') {
+            overlay.remove();
+        }
+    });
+    
+    // Re-enable main action button - CRITICAL
+    const mainButton = document.getElementById('main-action-button');
+    if (mainButton) {
+        mainButton.disabled = false;
+        mainButton.style.pointerEvents = 'auto';
+        mainButton.style.opacity = '1';
+        mainButton.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+    
+    // Extra safeguard with timeout
+    setTimeout(() => {
+        const btn = document.getElementById('main-action-button');
+        if (btn) {
+            btn.disabled = false;
+            btn.style.pointerEvents = 'auto';
+            btn.style.opacity = '1';
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    }, 50);
+}
+
+function makeDebtPayment(amount = 100) {
+    const char = gameState.character;
+    if (!char) return;
+
+    if (amount <= 0) {
+        logMessage('❌ Payment amount must be positive!', 'error');
+        return;
+    }
+
+    if (char.totalSavings < amount) {
+        logMessage(`❌ Not enough savings! You have $${char.totalSavings.toLocaleString()} but need $${amount.toLocaleString()}`, 'error');
+        return;
+    }
+
+    if (char.totalDebt <= 0) {
+        logMessage('🎉 You have no debt to pay! Great job!', 'success');
+        return;
+    }
+
+    const actualPayment = Math.min(amount, char.totalDebt);
+    
+    char.totalSavings -= actualPayment;
+    char.totalDebt -= actualPayment;
+    char.netWorth = char.totalSavings - char.totalDebt;
+    
+    // BALANCED: Reduced XP gains
+    const baseXPEarned = Math.round(actualPayment / 4); // Was /2
+    const bonusXP = actualPayment >= 500 ? Math.round(actualPayment * 0.05) : 0; // Was 10%
+    const totalXPEarned = baseXPEarned + bonusXP;
+    char.xp += totalXPEarned;
+    
+    logMessage(`💳 Made $${actualPayment.toLocaleString()} debt payment! Remaining debt: $${char.totalDebt.toLocaleString()}`, 'success');
+    logMessage(`✨ Earned ${totalXPEarned} XP ${bonusXP > 0 ? `(including $${bonusXP} bonus for aggressive payment!)` : ''}`, 'info');
+    
+    if (actualPayment >= 500) {
+        logMessage(`💡 Aggressive debt payments like this can save you thousands in interest over time!`, 'lesson');
+    } else if (actualPayment >= 250) {
+        logMessage(`💡 Consistent medium-sized payments are great for building momentum!`, 'lesson');
+    } else {
+        logMessage(`💡 Every payment counts! Small regular payments build financial discipline.`, 'lesson');
+    }
+    
+    checkDebtMilestones();
+    checkLevelUp();
+    checkAchievements();
+    
+    // Remove modal immediately and directly
+    const debtModal = document.getElementById('debt-payment-modal');
+    if (debtModal) {
+        debtModal.remove();
+    }
+    
+    updateUI();
+    
+    // NUCLEAR OPTION: Aggressively ensure button stays enabled with multiple waves
+    const enableButton = () => {
+        const btn = document.getElementById('main-action-button');
+        if (btn) {
+            btn.disabled = false;
+            btn.style.pointerEvents = 'auto';
+            btn.style.opacity = '1';
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    };
+    
+    // Wave 1: Immediate
+    enableButton();
+    
+    // Wave 2: After 10ms
+    setTimeout(enableButton, 10);
+    
+    // Wave 3: After 50ms
+    setTimeout(enableButton, 50);
+    
+    // Wave 4: After 100ms
+    setTimeout(enableButton, 100);
+    
+    // Wave 5: After 200ms
+    setTimeout(enableButton, 200);
+    
+    // Wave 6: After 500ms (final insurance)
+    setTimeout(enableButton, 500);
+}
+
+function checkDebtMilestones() {
+    const char = gameState.character;
+    const originalDebt = gameState.classes[char.class].debt;
+    const debtReduction = originalDebt - char.totalDebt;
+    const reductionPercentage = (debtReduction / originalDebt) * 100;
+    
+    const milestones = [
+        { percent: 10, message: "🎯 You've paid off 10% of your original debt! Momentum is building!" },
+        { percent: 25, message: "🎯 25% debt reduction! You're making serious progress!" },
+        { percent: 50, message: "🎯 HALFWAY THERE! 50% debt reduction achieved!" },
+        { percent: 75, message: "🎯 75% debt freedom! The finish line is in sight!" },
+        { percent: 90, message: "🎯 90% debt-free! You're almost there!" },
+        { percent: 100, message: "🎉 DEBT FREE! You've completely eliminated your starting debt! Incredible achievement!" }
+    ];
+    
+    milestones.forEach(milestone => {
+        if (reductionPercentage >= milestone.percent && reductionPercentage < milestone.percent + 5) {
+            logMessage(milestone.message, 'success');
+            if (milestone.percent >= 50) {
+                const milestoneXP = milestone.percent * 10;
+                char.xp += milestoneXP;
+                logMessage(`✨ Bonus ${milestoneXP} XP for major debt milestone!`, 'info');
+            }
+        }
+    });
+}
+
+// --- GOLD SPENDING SYSTEM ---
+
+function showGoldShop() {
+    const char = gameState.character;
+    if (!char) return;
+    
+    // Ensure main button is enabled
+    const mainButton = document.getElementById('main-action-button');
+    if (mainButton) {
+        mainButton.disabled = false;
+    }
+
+    const shopItems = [
+        {
+            id: 'emergency_boost',
+            name: '🚑 Emergency Fund Boost',
+            description: 'Instantly add $500 to your savings (one-time)',
+            cost: 200,
+            effect: (char) => {
+                char.totalSavings += 500;
+                char.netWorth = char.totalSavings - char.totalDebt;
+                logMessage('🚑 Emergency fund boosted by $500! Your savings are looking healthier.', 'success');
+            }
+        },
+        {
+            id: 'debt_counseling',
+            name: '📊 Financial Counseling',
+            description: 'Get expert advice - reduce one debt by 10%',
+            cost: 150,
+            effect: (char) => {
+                if (char.totalDebt > 0) {
+                    const reduction = Math.floor(char.totalDebt * 0.1);
+                    char.totalDebt -= reduction;
+                    char.netWorth = char.totalSavings - char.totalDebt;
+                    logMessage(`📊 Financial counseling reduced your debt by $${reduction.toLocaleString()}!`, 'success');
+                    logMessage('💡 Professional advice can help optimize your debt payoff strategy!', 'lesson');
+                } else {
+                    logMessage('📊 You have no debt to reduce! Great financial position.', 'success');
+                    char.gold += 150; // Refund if no debt
+                }
+            }
+        },
+        {
+            id: 'investment_training',
+            name: '📈 Investment Training',
+            description: 'Learn to make your money work for you (+2% monthly returns for 3 months)',
+            cost: 300,
+            effect: (char) => {
+                char.investmentBonus = char.investmentBonus || { remaining: 0, multiplier: 1 };
+                char.investmentBonus.remaining = 3;
+                char.investmentBonus.multiplier = 1.02;
+                logMessage('📈 Investment training purchased! Your savings will grow 2% faster for 3 months.', 'success');
+                logMessage('💡 Learning to invest is key to long-term wealth building!', 'lesson');
+            }
+        },
+        {
+            id: 'debt_analysis',
+            name: '🔍 Debt Analysis Report',
+            description: 'Identify highest interest debts (bonus XP on next 3 debt payments)',
+            cost: 100,
+            effect: (char) => {
+                char.debtAnalysisBonus = char.debtAnalysisBonus || 0;
+                char.debtAnalysisBonus += 3;
+                logMessage('🔍 Debt analysis complete! Your next 3 debt payments will earn bonus XP.', 'success');
+                logMessage('💡 Targeting high-interest debt first saves the most money long-term!', 'lesson');
+            }
+        }
+    ];
+
+    const modalHTML = `
+        <div class="fixed inset-0 rpg-bg bg-opacity-95 flex items-center justify-center p-4 z-50" id="gold-shop-modal">
+            <div class="rpg-card p-6 rounded-lg max-w-md w-full border-yellow-500">
+                <h2 class="rpg-font text-xl text-yellow-400 mb-4 text-center">💰 Financial Tools Shop</h2>
+                <p class="text-gray-300 text-center mb-4">Your Gold: <span class="text-yellow-300 font-bold">${char.gold.toLocaleString()}</span></p>
+                
+                <div class="space-y-3 mb-4 max-h-96 overflow-y-auto">
+                    ${shopItems.map(item => {
+                        const canAfford = char.gold >= item.cost;
+                        return `
+                            <div class="p-3 border ${canAfford ? 'border-gray-600 hover:bg-gray-700 cursor-pointer' : 'border-red-800 bg-gray-800 opacity-50'} rounded-lg" 
+                                 ${canAfford ? `onclick="purchaseItem('${item.id}')"` : ''}>
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1">
+                                        <p class="text-white font-bold">${item.name}</p>
+                                        <p class="text-xs text-gray-400 mb-2">${item.description}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-yellow-300 font-bold">${item.cost} Gold</p>
+                                        ${canAfford ? 
+                                            `<span class="text-green-400 text-xs">Buy Now</span>` : 
+                                            `<span class="text-red-400 text-xs">Need ${item.cost - char.gold} more</span>`
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                
+                <div class="text-center">
+                    <button onclick="closeModal()" class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded">
+                        Close Shop
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Remove any existing shop modal first
+    const existingModal = document.getElementById('gold-shop-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+function purchaseItem(itemId) {
+    const char = gameState.character;
+    if (!char) return;
+
+    const shopItems = {
+        'emergency_boost': { 
+            cost: 200, 
+            effect: (char) => { 
+                char.totalSavings += 500;
+                char.netWorth = char.totalSavings - char.totalDebt;
+                logMessage('🚑 Emergency fund boosted by $500! Your savings are looking healthier.', 'success');
+            }
+        },
+        'debt_counseling': { 
+            cost: 150, 
+            effect: (char) => { 
+                if (char.totalDebt > 0) {
+                    const reduction = Math.floor(char.totalDebt * 0.1);
+                    char.totalDebt -= reduction;
+                    char.netWorth = char.totalSavings - char.totalDebt;
+                    logMessage(`📊 Financial counseling reduced your debt by $${reduction.toLocaleString()}!`, 'success');
+                    logMessage('💡 Professional advice can help optimize your debt payoff strategy!', 'lesson');
+                } else {
+                    logMessage('📊 You have no debt to reduce! Great financial position.', 'success');
+                    char.gold += 150; // Refund if no debt
+                }
+            }
+        },
+        'investment_training': { 
+            cost: 300, 
+            effect: (char) => {
+                char.investmentBonus = { remaining: 3, multiplier: 1.02 };
+                logMessage('📈 Investment training purchased! Your savings will grow 2% faster for 3 months.', 'success');
+                logMessage('💡 Learning to invest is key to long-term wealth building!', 'lesson');
+            }
+        },
+        'debt_analysis': { 
+            cost: 100, 
+            effect: (char) => {
+                char.debtAnalysisBonus = (char.debtAnalysisBonus || 0) + 3;
+                logMessage('🔍 Debt analysis complete! Your next 3 debt payments will earn bonus XP.', 'success');
+                logMessage('💡 Targeting high-interest debt first saves the most money long-term!', 'lesson');
+            }
+        }
+    };
+
+    const item = shopItems[itemId];
+    if (!item) {
+        logMessage('❌ Item not found!', 'error');
+        return;
+    }
+
+    if (char.gold >= item.cost) {
+        char.gold -= item.cost;
+        item.effect(char);
+        
+        logMessage(`✅ Purchased ${getItemName(itemId)} for ${item.cost} Gold!`, 'success');
+        
+        // Directly remove shop modal
+        const shopModal = document.getElementById('gold-shop-modal');
+        if (shopModal) {
+            shopModal.remove();
+        }
+        
+        updateUI();
+        
+        // NUCLEAR OPTION: Multiple waves of button enabling
+        const enableButton = () => {
+            const btn = document.getElementById('main-action-button');
+            if (btn) {
+                btn.disabled = false;
+                btn.style.pointerEvents = 'auto';
+                btn.style.opacity = '1';
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        };
+        
+        enableButton();
+        setTimeout(enableButton, 10);
+        setTimeout(enableButton, 50);
+        setTimeout(enableButton, 100);
+        setTimeout(enableButton, 200);
+        setTimeout(enableButton, 500);
+    } else {
+        logMessage(`❌ Not enough gold! You need ${item.cost} but have ${char.gold}.`, 'error');
+    }
+}
+
+function getItemName(itemId) {
+    const names = {
+        'emergency_boost': 'Emergency Fund Boost',
+        'debt_counseling': 'Financial Counseling',
+        'investment_training': 'Investment Training',
+        'debt_analysis': 'Debt Analysis Report'
+    };
+    return names[itemId] || 'Item';
+}
+
+// --- RANDOM EVENT SYSTEM ---
+
+function triggerRandomEvent() {
+    if (gameState.month === 0 || Math.random() < 0.4) {
+        processMonthlyCycle(true);
+        return;
+    }
+
+    const event = gameState.randomEvents[Math.floor(Math.random() * gameState.randomEvents.length)];
+    
+    document.getElementById('event-title').textContent = event.title;
+    document.getElementById('event-flavor').textContent = event.flavor;
+    document.getElementById('event-option-a').textContent = event.optionA.label;
+    document.getElementById('event-option-b').textContent = event.optionB.label;
+    
+    document.getElementById('event-option-a').onclick = () => { 
+        handleEventChoice(event.optionA.action); 
+    };
+    document.getElementById('event-option-b').onclick = () => { 
+        handleEventChoice(event.optionB.action); 
+    };
+
+    document.getElementById('main-action-button').disabled = true;
+    document.getElementById('random-event-modal').classList.remove('hidden');
+}
+
+function handleEventChoice(actionFunction) {
+    const char = gameState.character;
+    actionFunction(char);
+    document.getElementById('random-event-modal').classList.add('hidden');
+    document.getElementById('main-action-button').disabled = false;
+    processMonthlyCycle(false);
+    // Extra safeguard: Re-enable button after processing completes
+    setTimeout(() => {
+        document.getElementById('main-action-button').disabled = false;
+    }, 100);
+}
+
+function processMonthlyCycle(skipEvent = false) {
+    const char = gameState.character;
+    if (!char) return;
+
+    gameState.month++;
+    logMessage(`--- MONTH ${gameState.month}: BUDGET CYCLE & ACTIONS ---`, 'info');
+
+    // Apply bonuses first
+    let bonusMessages = [];
+    
+    // Investment bonus
+    if (char.investmentBonus && char.investmentBonus.remaining > 0) {
+        const investmentGain = Math.floor(char.totalSavings * (char.investmentBonus.multiplier - 1));
+        if (investmentGain > 0) {
+            char.totalSavings += investmentGain;
+            bonusMessages.push(`📈 Investment returns: +$${investmentGain.toLocaleString()}`);
+        }
+        char.investmentBonus.remaining--;
+        if (char.investmentBonus.remaining === 0) {
+            bonusMessages.push('📈 Investment training has expired.');
+            delete char.investmentBonus;
+        }
+    }
+    
+    // Calculate monthly budget
+    const surplus = char.monthlySalary - char.monthlyExpenses;
+    char.budgetSurplus = surplus;
+    logMessage(`Income: $${char.monthlySalary.toLocaleString()} - Expenses: $${char.monthlyExpenses.toLocaleString()} = Surplus: $${surplus.toLocaleString()}.`, 'info');
+
+    if (surplus > 0) {
+        char.totalSavings += surplus;
+        // BALANCED: Reduced XP gains
+        const xpEarned = Math.round(surplus / 4); // Was /2
+        char.xp += xpEarned;
+        logMessage(`💰 Saved $${surplus.toLocaleString()}. Total Savings: $${char.totalSavings.toLocaleString()}.`, 'success');
+        logMessage(`✨ Earned ${xpEarned} XP for smart budgeting!`, 'info');
+        checkLevelUp();
+    } else if (surplus < 0) {
+        char.totalDebt += Math.abs(surplus);
+        logMessage(`🚨 Deficit of $${Math.abs(surplus).toLocaleString()}. Total Debt increases to $${char.totalDebt.toLocaleString()}.`, 'error');
+        // BALANCED: Reduced deficit XP
+        char.xp += 5; // Was 10
+        logMessage(`💡 Learning opportunity! Can you reduce expenses next month?`, 'lesson');
+    }
+    
+    char.netWorth = char.totalSavings - char.totalDebt;
+    logMessage(`Net Worth updated: $${char.netWorth.toLocaleString()}.`, 'info');
+
+    // BALANCED: Reduced consistency bonus
+    const consistencyBonus = 25 + (char.level * 5); // Was 50 + level*10
+    char.xp += consistencyBonus;
+    logMessage(`📅 Monthly consistency bonus: +${consistencyBonus} XP!`, 'info');
+
+    // Show bonus messages
+    bonusMessages.forEach(msg => logMessage(msg, 'success'));
+
+    if (gameState.currentEnemy) {
+        const interestDamage = Math.round(gameState.currentEnemy.maxHp * 0.05); 
+        gameState.currentEnemy.hp += interestDamage;
+        char.totalDebt += interestDamage;
+        logMessage(`The ${gameState.currentEnemy.name} grows! Interest/Damage: +$${interestDamage.toLocaleString()} HP/Debt.`, 'combat');
+    }
+
+    if (Math.random() < 0.15) {
+        const windfalls = [
+            { amount: 100, message: "🎁 Small tax refund arrived! +$100 savings", xp: 25 }, // Reduced XP
+            { amount: 50, message: "💼 Found $50 doing laundry! +$50 savings", xp: 15 }, // Reduced XP
+        ];
+        const windfall = windfalls[Math.floor(Math.random() * windfalls.length)];
+        char.totalSavings += windfall.amount;
+        char.xp += windfall.xp;
+        char.netWorth = char.totalSavings - char.totalDebt;
+        logMessage(windfall.message, 'success');
+    }
+
+    checkLevelUp();
+    checkAchievements();
+    updateUI();
+    
+    // CRITICAL: Always ensure the main action button is enabled after processing
+    document.getElementById('main-action-button').disabled = false;
+}
+
+function runMonthlyCycle() {
+    // Make sure the button is always enabled after clicking
+    document.getElementById('main-action-button').disabled = false;
+    
+    if (document.getElementById('random-event-modal').classList.contains('hidden')) {
+        triggerRandomEvent();
+    }
+}
+
+// --- COMBAT FUNCTIONS ---
+
+function fightEnemy() {
+    const char = gameState.character;
+    const enemy = gameState.currentEnemy;
+    if (!char || !enemy) return;
+
+    const payment = 50;
+    if (char.totalSavings >= payment) {
+        char.totalSavings -= payment;
+        enemy.hp -= payment;
+        char.totalDebt -= payment;
+        char.netWorth = char.totalSavings - char.totalDebt;
+
+        logMessage(`💥 ATTACK! You used Savings ($${payment}) to chip away at ${enemy.name}.`, 'combat');
+
+        if (enemy.hp <= 0) {
+            const enemyTemplate = gameState.enemies[enemy.name];
+            char.xp += enemyTemplate.xpReward;
+            char.gold += enemyTemplate.goldDrop;
+            
+            // Track debt monsters defeated
+            char.debtMonstersDefeated = (char.debtMonstersDefeated || 0) + 1;
+            
+            logMessage(`🎉 VICTORY! The ${enemy.name} is defeated!`, 'success');
+            logMessage(`✨ Earned ${enemyTemplate.xpReward} XP and ${enemyTemplate.goldDrop} Gold!`, 'success');
+            logMessage(`💡 Small consistent payments beat debt! This is the 'debt snowball' method in action.`, 'lesson');
+            
+            gameState.currentEnemy = null;
+            checkLevelUp();
+            checkAchievements();
+        } else {
+            logMessage(`The ${enemy.name} has ${enemy.hp.toLocaleString()} HP remaining.`, 'combat');
+        }
+        updateUI();
+        
+        // NUCLEAR OPTION: Multiple waves of button enabling
+        const enableButton = () => {
+            const btn = document.getElementById('main-action-button');
+            if (btn) {
+                btn.disabled = false;
+                btn.style.pointerEvents = 'auto';
+                btn.style.opacity = '1';
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        };
+        
+        enableButton();
+        setTimeout(enableButton, 10);
+        setTimeout(enableButton, 50);
+        setTimeout(enableButton, 100);
+        setTimeout(enableButton, 200);
+        setTimeout(enableButton, 500);
+    } else {
+        logMessage(`❌ Not enough savings to fight ${enemy.name}! Advance monthly cycles to save up.`, 'error');
+    }
+}
+
+function completeQuest(questId) {
+    const char = gameState.character;
+    const quest = gameState.quests.find(q => q.id === questId);
+
+    if (!quest || char.questsCompleted.includes(questId)) return;
+
+    if (quest.requiredLevel && char.level < quest.requiredLevel) {
+        logMessage(`🔒 Need level ${quest.requiredLevel} to attempt this quest!`, 'warning');
+        return;
+    }
+
+    let canComplete = false;
+    if (quest.type === 'save' && char.totalSavings >= quest.goal) {
+        canComplete = true;
+    } else if (quest.type === 'debt' && char.totalDebt <= (quest.amount - 1)) {
+        canComplete = true; 
+    } else if (quest.type === 'networth' && char.netWorth >= quest.goal) {
+        canComplete = true;
+    }
+
+    if (canComplete) {
+        char.xp += quest.xp;
+        char.gold += quest.rewardGold;
+        char.questsCompleted.push(questId);
+        logMessage(`🏆 Quest Complete: ${quest.title}!`, 'success');
+        
+        const completionBonus = Math.round(quest.xp * 0.2);
+        char.xp += completionBonus;
+        logMessage(`🎯 Quest mastery bonus: +${completionBonus} XP!`, 'info');
+        
+        checkLevelUp();
+        checkAchievements();
+        updateUI();
+    } else {
+        logMessage(`You haven't met the requirements for ${quest.title} yet. Keep working!`, 'warning');
+    }
+}
+
+function checkLevelUp() {
+    const char = gameState.character;
+    if (!char) return;
+
+    const getLevelXP = (level) => {
+        if (level <= 5) return level * 500;
+        else if (level <= 10) return level * 800;
+        else return level * 1200;
+    };
+
+    const nextLevelXP = getLevelXP(char.level);
+    
+    if (char.xp >= nextLevelXP) {
+        char.level += 1;
+        char.xp = char.xp - nextLevelXP;
+        
+        const baseReward = 200;
+        const levelBonus = char.level * 75;
+        const totalReward = baseReward + levelBonus;
+        char.gold += totalReward;
+        
+        logMessage(`🎉 LEVEL UP! ${char.name} is now Level ${char.level}!`, 'success');
+        logMessage(`💰 Earned ${totalReward.toLocaleString()} Gold as a Level Up reward!`, 'success');
+        
+        const levelLessons = {
+            2: "💡 Level 2! You're grasping financial basics. Emergency funds are your first defense against unexpected expenses!",
+            3: "💡 Level 3! With savings growing, focus on high-interest debt - it's the most expensive and should be paid first!",
+            4: "💡 Level 4! You're building momentum. Consider the 50/30/20 rule: 50% needs, 30% wants, 20% savings/debt!",
+            5: "💡 Level 5! You're ready to explore index funds - the easiest, most diversified way to start investing!",
+            6: "💡 Level 6! Great progress! Learn about Roth IRAs - tax-free growth for retirement is powerful!",
+            7: "💡 Level 7! You're becoming financially literate. Research high-yield savings accounts for better returns!",
+            8: "💡 Level 8! Advanced tip: Dollar-cost averaging reduces investment risk over time!",
+            10: "💡 Level 10! Financial master! You understand compound interest - now make it work for you!"
+        };
+        
+        if (levelLessons[char.level]) {
+            logMessage(levelLessons[char.level], 'lesson');
+        }
+        
+        checkLevelUp();
+        checkAchievements();
+    }
+}
+
+function updateQuests() {
+    const char = gameState.character;
+    const questList = document.getElementById('quest-list');
+    questList.innerHTML = '';
+    
+    const availableQuests = gameState.quests.filter(quest => 
+        !char.questsCompleted.includes(quest.id) && 
+        (!quest.requiredLevel || char.level >= quest.requiredLevel)
+    );
+    
+    if (availableQuests.length === 0) {
+        questList.innerHTML = `<p class="text-green-400 text-sm">All available quests complete! Level up to unlock new ones.</p>`;
+        return;
+    }
+    
+    availableQuests.forEach(quest => {
+        let progress = '';
+        let canComplete = false;
+        
+        if (quest.type === 'save') {
+            progress = `Progress: $${Math.min(char.totalSavings, quest.goal).toLocaleString()}/$${quest.goal.toLocaleString()}`;
+            canComplete = char.totalSavings >= quest.goal;
+        } else if (quest.type === 'debt') {
+            const currentDebt = Math.max(0, char.totalDebt);
+            const paidDown = quest.amount - currentDebt;
+            progress = `Progress: $${Math.max(0, paidDown).toLocaleString()}/$${quest.amount.toLocaleString()} debt paid`;
+            canComplete = currentDebt <= (quest.amount / 5);
+        } else if (quest.type === 'networth') {
+            progress = `Progress: $${char.netWorth.toLocaleString()}/$${quest.goal.toLocaleString()}`;
+            canComplete = char.netWorth >= quest.goal;
+        }
+        
+        questList.innerHTML += `
+            <li class="p-2 border-b border-gray-600">
+                <h4 class="text-base text-yellow-400 font-bold">${quest.title} ${quest.requiredLevel ? `(Lvl ${quest.requiredLevel}+)` : ''}</h4>
+                <p class="text-xs text-gray-400 mb-1">${quest.type === 'save' ? `Goal: Save $${quest.goal.toLocaleString()}` : quest.type === 'debt' ? `Goal: Reduce debt by $${quest.amount.toLocaleString()}` : `Goal: Reach $${quest.goal.toLocaleString()} net worth`}</p>
+                <p class="text-xs text-blue-400">${progress}</p>
+                <p class="text-xs text-green-400 mt-1">Reward: ${quest.xp} XP + ${quest.rewardGold} Gold</p>
+                ${canComplete ? 
+                    `<button onclick="completeQuest(${quest.id})" class="mt-1 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-2 rounded text-xs">
+                        CLAIM REWARD
+                    </button>` :
+                    '<p class="text-xs text-gray-500 mt-1">Keep working toward this goal!</p>'
+                }
+            </li>
+        `;
+    });
+}
+
+function startCombat(enemyKey) {
+    if (gameState.currentEnemy) {
+        logMessage("You are already engaged in combat!", 'warning');
+        return;
+    }
+    const enemyTemplate = gameState.enemies[enemyKey];
+    if (!enemyTemplate) return;
+
+    gameState.currentEnemy = {
+        name: enemyKey,
+        hp: enemyTemplate.debt,
+        maxHp: enemyTemplate.debt,
+        goldDrop: enemyTemplate.goldDrop,
+        xpReward: enemyTemplate.xpReward,
+        flavor: enemyTemplate.flavor
+    };
+
+    logMessage(`⚔️ You engage the ${enemyKey}! Use your savings to attack its HP (Debt)!`, 'combat');
+    updateUI();
+    
+    // Ensure button stays enabled when starting combat
+    setTimeout(() => {
+        const mainButton = document.getElementById('main-action-button');
+        if (mainButton) {
+            mainButton.disabled = false;
+        }
+    }, 100);
+}
+
+function startRandomCombat() {
+    if (gameState.currentEnemy) {
+        logMessage("You're already engaged in combat!", 'warning');
+        return;
+    }
+    
+    const enemyKeys = Object.keys(gameState.enemies);
+    const randomEnemyKey = enemyKeys[Math.floor(Math.random() * enemyKeys.length)];
+    startCombat(randomEnemyKey);
+}
+
+function updateCombatSection() {
+    const combatSection = document.getElementById('combat-section');
+    if (gameState.currentEnemy) {
+        const enemy = gameState.currentEnemy;
+        combatSection.innerHTML = `
+            <div class="p-4 rpg-card mt-4 border-red-500">
+                <h3 class="rpg-font text-red-400 text-lg">Debt Monster Encounter!</h3>
+                <p class="text-xl font-bold">${enemy.name}</p>
+                <p class="text-sm text-gray-300">HP (Remaining Debt): <span id="enemy-hp">${Math.max(0, enemy.hp).toLocaleString()}</span> / ${enemy.maxHp.toLocaleString()}</p>
+                <p class="text-xs text-gray-400 mb-2">${enemy.flavor}</p>
+                <button onclick="fightEnemy()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-lg text-sm transition duration-150">
+                    ⚔️ FIGHT! (Use $50 Savings)
+                </button>
+            </div>
+        `;
+    } else {
+        combatSection.innerHTML = `
+            <div class="p-4 mt-4 text-center">
+                <p class="text-gray-400 text-sm">All is peaceful... Build your funds for the next Debt Challenge.</p>
+                <div class="mt-2">
+                    <button onclick="startRandomCombat()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition duration-150 w-full">
+                        ⚔️ Seek Random Foe
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// --- ACHIEVEMENT SYSTEM ---
+
+function updateAchievements() {
+    const char = gameState.character;
+    if (!char) return;
+    
+    const achievementsList = document.getElementById('achievements-list');
+    achievementsList.innerHTML = '';
+    
+    gameState.achievementsList.forEach(achievement => {
+        const isUnlocked = gameState.achievements.includes(achievement.id);
+        
+        achievementsList.innerHTML += `
+            <div class="p-2 border-b border-gray-600 ${isUnlocked ? 'bg-green-900/20' : ''}">
+                <h4 class="text-sm ${isUnlocked ? 'text-green-400' : 'text-gray-400'} font-bold">${achievement.name}</h4>
+                <p class="text-xs text-gray-400 mb-1">${achievement.description}</p>
+                <p class="text-xs ${isUnlocked ? 'text-yellow-400' : 'text-gray-500'}">Reward: ${achievement.reward} Gold</p>
+                ${isUnlocked ? 
+                    '<p class="text-xs text-green-400 mt-1">✓ UNLOCKED</p>' : 
+                    '<p class="text-xs text-gray-500 mt-1">Locked</p>'
+                }
+            </div>
+        `;
+    });
+}
+
+function checkAchievements() {
+    const char = gameState.character;
+    if (!char) return;
+    
+    // Check each achievement condition
+    if (char.totalSavings >= 100 && !gameState.achievements.includes('first_save')) {
+        unlockAchievement('first_save');
+    }
+    
+    if (char.totalDebt <= 0 && !gameState.achievements.includes('debt_free')) {
+        unlockAchievement('debt_free');
+    }
+    
+    if (char.totalSavings >= 1000 && !gameState.achievements.includes('emergency_fund')) {
+        unlockAchievement('emergency_fund');
+    }
+    
+    if (char.netWorth > 0 && !gameState.achievements.includes('net_positive')) {
+        unlockAchievement('net_positive');
+    }
+    
+    if (char.level >= 5 && !gameState.achievements.includes('level_5')) {
+        unlockAchievement('level_5');
+    }
+    
+    if (char.level >= 10 && !gameState.achievements.includes('level_10')) {
+        unlockAchievement('level_10');
+    }
+    
+    // Track debt monsters defeated
+    if (!char.debtMonstersDefeated) char.debtMonstersDefeated = 0;
+    if (char.debtMonstersDefeated >= 5 && !gameState.achievements.includes('debt_slayer')) {
+        unlockAchievement('debt_slayer');
+    }
+}
+
+function unlockAchievement(achievementId) {
+    const achievement = gameState.achievementsList.find(a => a.id === achievementId);
+    if (!achievement || gameState.achievements.includes(achievementId)) return;
+    
+    gameState.achievements.push(achievementId);
+    const char = gameState.character;
+    char.gold += achievement.reward;
+    
+    // Show achievement notification
+    const notificationArea = document.getElementById('achievement-notifications');
+    notificationArea.innerHTML = `
+        <div class="bg-yellow-800 border border-yellow-600 text-yellow-200 p-2 rounded fade-in">
+            <p class="font-bold">🏆 Achievement Unlocked: ${achievement.name}!</p>
+            <p class="text-sm">${achievement.description}</p>
+            <p class="text-sm">Reward: ${achievement.reward} Gold</p>
+        </div>
+    `;
+    
+    logMessage(`🏆 Achievement Unlocked: ${achievement.name}! +${achievement.reward} Gold`, 'success');
+    
+    // Auto-remove notification after 5 seconds
+    setTimeout(() => {
+        notificationArea.innerHTML = '';
+    }, 5000);
+    
+    updateUI();
+}
+
+// --- MAKE FUNCTIONS GLOBAL ---
+window.logMessage = logMessage;
+window.updateUI = updateUI;
+window.updateClassReality = updateClassReality;
+window.handleSetupSubmit = handleSetupSubmit;
+window.showDebtPaymentOptions = showDebtPaymentOptions;
+window.showCustomDebtPayment = showCustomDebtPayment;
+window.setPaymentPercentage = setPaymentPercentage;
+window.processCustomPayment = processCustomPayment;
+window.closeModal = closeModal;
+window.makeDebtPayment = makeDebtPayment;
+window.showGoldShop = showGoldShop;
+window.purchaseItem = purchaseItem;
+window.triggerRandomEvent = triggerRandomEvent;
+window.handleEventChoice = handleEventChoice;
+window.runMonthlyCycle = runMonthlyCycle;
+window.fightEnemy = fightEnemy;
+window.completeQuest = completeQuest;
+window.checkLevelUp = checkLevelUp;
+window.startCombat = startCombat;
+window.startRandomCombat = startRandomCombat;
+window.checkAchievements = checkAchievements;
+window.unlockAchievement = unlockAchievement;
+
+// --- INITIALIZATION ---
+window.onload = () => {
+    window.updateClassReality('The Barista (Service Worker)');
+};
+</script>
+
+</body>
+</html>
