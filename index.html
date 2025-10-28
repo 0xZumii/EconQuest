@@ -390,7 +390,6 @@ const gameState = {
         { id: 'net_positive', name: 'Positive Net Worth', description: 'Achieve a positive net worth', reward: 300, unlocked: false },
         { id: 'level_5', name: 'Financial Novice', description: 'Reach Level 5', reward: 150, unlocked: false },
         { id: 'level_10', name: 'Financial Adept', description: 'Reach Level 10', reward: 300, unlocked: false },
-        { id: 'first_investment', name: 'First Investment', description: 'Make your first investment', reward: 100, unlocked: false },
         { id: 'debt_slayer', name: 'Debt Slayer', description: 'Defeat 5 debt monsters', reward: 250, unlocked: false }
     ]
 };
@@ -551,6 +550,22 @@ function showDebtPaymentOptions() {
     
     if (maxPayment <= 0) {
         logMessage(`❌ You need at least some savings to make a debt payment!`, 'error');
+        // Enable button even on error
+        const enableButton = () => {
+            const btn = document.getElementById('main-action-button');
+            if (btn) {
+                btn.disabled = false;
+                btn.style.pointerEvents = 'auto';
+                btn.style.opacity = '1';
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        };
+        enableButton();
+        setTimeout(enableButton, 10);
+        setTimeout(enableButton, 50);
+        setTimeout(enableButton, 100);
+        setTimeout(enableButton, 200);
+        setTimeout(enableButton, 500);
         return;
     }
 
@@ -744,19 +759,41 @@ function closeModal() {
 function makeDebtPayment(amount = 100) {
     const char = gameState.character;
     if (!char) return;
+    
+    // Helper function to ensure button is enabled
+    const ensureButtonEnabled = () => {
+        const enableButton = () => {
+            const btn = document.getElementById('main-action-button');
+            if (btn) {
+                btn.disabled = false;
+                btn.style.pointerEvents = 'auto';
+                btn.style.opacity = '1';
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        };
+        enableButton();
+        setTimeout(enableButton, 10);
+        setTimeout(enableButton, 50);
+        setTimeout(enableButton, 100);
+        setTimeout(enableButton, 200);
+        setTimeout(enableButton, 500);
+    };
 
     if (amount <= 0) {
         logMessage('❌ Payment amount must be positive!', 'error');
+        ensureButtonEnabled();
         return;
     }
 
     if (char.totalSavings < amount) {
         logMessage(`❌ Not enough savings! You have $${char.totalSavings.toLocaleString()} but need $${amount.toLocaleString()}`, 'error');
+        ensureButtonEnabled();
         return;
     }
 
     if (char.totalDebt <= 0) {
         logMessage('🎉 You have no debt to pay! Great job!', 'success');
+        ensureButtonEnabled();
         return;
     }
 
@@ -1018,6 +1055,22 @@ function purchaseItem(itemId) {
     const item = shopItems[itemId];
     if (!item) {
         logMessage('❌ Item not found!', 'error');
+        // Enable button even on error
+        const enableButton = () => {
+            const btn = document.getElementById('main-action-button');
+            if (btn) {
+                btn.disabled = false;
+                btn.style.pointerEvents = 'auto';
+                btn.style.opacity = '1';
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        };
+        enableButton();
+        setTimeout(enableButton, 10);
+        setTimeout(enableButton, 50);
+        setTimeout(enableButton, 100);
+        setTimeout(enableButton, 200);
+        setTimeout(enableButton, 500);
         return;
     }
 
@@ -1054,6 +1107,22 @@ function purchaseItem(itemId) {
         setTimeout(enableButton, 500);
     } else {
         logMessage(`❌ Not enough gold! You need ${item.cost} but have ${char.gold}.`, 'error');
+        // Enable button even when can't afford
+        const enableButton = () => {
+            const btn = document.getElementById('main-action-button');
+            if (btn) {
+                btn.disabled = false;
+                btn.style.pointerEvents = 'auto';
+                btn.style.opacity = '1';
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        };
+        enableButton();
+        setTimeout(enableButton, 10);
+        setTimeout(enableButton, 50);
+        setTimeout(enableButton, 100);
+        setTimeout(enableButton, 200);
+        setTimeout(enableButton, 500);
     }
 }
 
@@ -1252,6 +1321,24 @@ function fightEnemy() {
         setTimeout(enableButton, 500);
     } else {
         logMessage(`❌ Not enough savings to fight ${enemy.name}! Advance monthly cycles to save up.`, 'error');
+        
+        // NUCLEAR OPTION: Enable button even on error path
+        const enableButton = () => {
+            const btn = document.getElementById('main-action-button');
+            if (btn) {
+                btn.disabled = false;
+                btn.style.pointerEvents = 'auto';
+                btn.style.opacity = '1';
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        };
+        
+        enableButton();
+        setTimeout(enableButton, 10);
+        setTimeout(enableButton, 50);
+        setTimeout(enableButton, 100);
+        setTimeout(enableButton, 200);
+        setTimeout(enableButton, 500);
     }
 }
 
@@ -1572,7 +1659,22 @@ window.unlockAchievement = unlockAchievement;
 // --- INITIALIZATION ---
 window.onload = () => {
     window.updateClassReality('The Barista (Service Worker)');
+    
+    // ULTRA NUCLEAR OPTION: Global button watchdog
+    // This runs every 100ms to ensure the button is ALWAYS enabled unless a modal is open
+    setInterval(() => {
+        const btn = document.getElementById('main-action-button');
+        const modalOpen = !document.getElementById('random-event-modal')?.classList.contains('hidden');
+        
+        if (btn && !modalOpen) {
+            btn.disabled = false;
+            btn.style.pointerEvents = 'auto';
+            btn.style.opacity = '1';
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    }, 100);
 };
+
 </script>
 
 </body>
